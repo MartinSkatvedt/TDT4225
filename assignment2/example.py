@@ -9,13 +9,70 @@ class ExampleProgram:
         self.db_connection = self.connection.db_connection
         self.cursor = self.connection.cursor
 
-    def create_table(self, table_name):
+    def create_user_table(self):
         query = """CREATE TABLE IF NOT EXISTS %s (
-                   id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
-                   name VARCHAR(30))
+                id VARCHAR(255) NOT NULL PRIMARY KEY,
+                has_labels BOOLEAN NOT NULL
+                )
                 """
         # This adds table_name to the %s variable and executes the query
-        self.cursor.execute(query % table_name)
+        self.cursor.execute(query % "User")
+        self.db_connection.commit()
+
+    def create_activity_table(self):
+        query = """CREATE TABLE IF NOT EXISTS %s (
+                id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+                user_id VARCHAR(255),
+                transportation_mode VARCHAR(255),
+                start_date_time DATETIME NOT NULL,
+                end_date_time DATETIME NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES User(id)
+                )
+                """
+        # This adds table_name to the %s variable and executes the query
+        self.cursor.execute(query % "Activity")
+        self.db_connection.commit()
+
+   
+    def create_trackpoint_table(self):
+        query = """ CREATE TABLE IF NOT EXISTS %s (
+                id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
+                activity_id INT,
+                lat DOUBLE NOT NULL,
+                lon DOUBLE NOT NULL,
+                altitude INT NOT NULL,
+                date_days DOUBLE NOT NULL,
+                date_time DATETIME NOT NULL,
+                FOREIGN KEY (activity_id) REFERENCES Activity(id)
+                )
+                """
+
+        self.cursor.execute(query % "Trackpoint")
+        self.db_connection.commit()
+    
+    def insert_users(self):
+        users = {}
+
+        for i in range(0, 182):
+            name_str = str(i)
+            if i < 10:
+                name_str = "00" + name_str
+            elif i < 100:
+                name_str = "0" + name_str
+
+            users.update({name_str: False})
+
+        with open("dataset/labeled_ids.txt", "r") as f:
+            read_users = f.readlines()
+
+            for user in read_users:
+                users.update({user.strip(): True})
+
+
+        for user in users:
+            query = "INSERT INTO %s (id, has_labels) VALUES ('%s', %s)"
+            self.cursor.execute(query % ("User", user, users[user]))
+        
         self.db_connection.commit()
 
     def insert_data(self, table_name):
@@ -53,12 +110,16 @@ def main():
     program = None
     try:
         program = ExampleProgram()
-        program.create_table(table_name="Person")
-        program.insert_data(table_name="Person")
-        _ = program.fetch_data(table_name="Person")
-        program.drop_table(table_name="Person")
-        # Check that the table is dropped
-        program.show_tables()
+        #program.create_user_table()
+        #program.create_activity_table()
+        #program.create_trackpoint_table()
+
+        #program.insert_users()
+
+
+        #program.show_tables()
+        
+    
     except Exception as e:
         print("ERROR: Failed to use database:", e)
     finally:
