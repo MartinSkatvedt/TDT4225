@@ -62,7 +62,7 @@ with open("dataset/labeled_ids.txt", "r") as f:
     for user in read_users:
         users.update({user.strip(): True})
 
-for i in range(20, 182):
+for i in range(0, 182):
     name_str = str(i)
     if i < 10:
         name_str = "00" + name_str
@@ -100,7 +100,7 @@ for i in range(20, 182):
                     label_start_datetime = datetime.datetime.strptime(parsed_label[0] + " " + parsed_label[1], "%Y/%m/%d %H:%M:%S")
                     label_end_datetime = datetime.datetime.strptime(parsed_label[2] + " " + parsed_label[3], "%Y/%m/%d %H:%M:%S")
 
-                    if activity_start_datetime.timestamp() >= label_start_datetime.timestamp() and activity_end_datetime.timestamp() <= label_end_datetime.timestamp():
+                    if activity_start_datetime.timestamp() == label_start_datetime.timestamp() and activity_end_datetime.timestamp() == label_end_datetime.timestamp():
                         activity_labels.append(parsed_label[4])
 
 
