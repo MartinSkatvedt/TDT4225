@@ -82,6 +82,15 @@ for i in range(0, 182):
         parsed_labels = parse_labeled_file(labeled_filename)
 
         for index, filename in enumerate(trajectory_files):
+            activity_id = index
+            if activity_id < 10: 
+                activity_id = "00" + str(activity_id)
+                    
+            elif activity_id < 100:
+                activity_id = "0" + str(activity_id)
+
+            activity_fk = name_str + str(activity_id)
+
             if filename.endswith(".plt"):
                 parsed = parse_plt_file(dirname + filename)
                 if parsed == []:
@@ -115,9 +124,9 @@ for i in range(0, 182):
                 txt_filename = str(index) + ".txt"
                 with open(cleaned_dirname + "/" + txt_filename, "w") as f:
                     f.write(name_str + "," + start_date + " " + start_time + "," + end_date + " " + end_time + "," + label_string + "\n")
-                    f.write("lat,lon,altitude,date,time\n")
+                    f.write("lat,lon,altitude,date_time\n")
                     for line in parsed:
-                        f.write(line[0] + "," + line[1] + "," + line[2] + "," + line[3] + "," + line[4] + "\n") 
+                        f.write(activity_fk + "," + line[0] + "," + line[1] + "," + line[2] + "," + line[3] + " " + line[4] + "\n")
     else:
         for index, filename in enumerate(trajectory_files):
             if filename.endswith(".plt"):
@@ -129,11 +138,20 @@ for i in range(0, 182):
                 end_date = parsed[-1][3]
                 end_time = parsed[-1][4]
 
+                activity_id = index
+                if activity_id < 10: 
+                    activity_id = "00" + str(activity_id)
+                        
+                elif activity_id < 100:
+                    activity_id = "0" + str(activity_id)
+
+                activity_fk = name_str + str(activity_id)
+
                 txt_filename = str(index) + ".txt"
                 with open(cleaned_dirname + "/" + txt_filename, "w") as f:
                     f.write(name_str + "," + start_date + " " + start_time + "," + end_date + " " + end_time + ", undefined" + "\n")
-                    f.write("lat,lon,altitude,date,time\n")
+                    f.write("lat,lon,altitude,date_time\n")
                     for line in parsed:
-                        f.write(line[0] + "," + line[1] + "," + line[2] + "," + line[3] + "," + line[4] + "\n")
+                        f.write(activity_fk + "," + line[0] + "," + line[1] + "," + line[2] + "," + line[3] + " " + line[4] + "\n")
     
 

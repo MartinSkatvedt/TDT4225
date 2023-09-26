@@ -21,7 +21,7 @@ class DbConnector:
                  PASSWORD="pythonclient"):
         # Connect to the database
         try:
-            self.db_connection = mysql.connect(host=HOST, database=DATABASE, user=USER, password=PASSWORD, port=3306)
+            self.db_connection = mysql.connect(host=HOST, database=DATABASE, user=USER, password=PASSWORD, port=3306, allow_local_infile=True)
         except Exception as e:
             print("ERROR: Failed to connect to db:", e)
 

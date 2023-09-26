@@ -155,24 +155,10 @@ class Assignment2Program:
             activity_files = os.listdir(dirname)
 
             for activity_file in activity_files:
-                with open(dirname + "/" + activity_file, "r") as f:
-                    activity_id = int(activity_file.replace(".txt", ""))
-                    
-                    if activity_id < 10: 
-                        activity_id = "00" + str(activity_id)
-                    
-                    elif activity_id < 100:
-                        activity_id = "0" + str(activity_id)
+                pathname = dirname + "/" + activity_file
+                query="LOAD DATA LOCAL INFILE '%s' INTO TABLE %s FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n' IGNORE 2 LINES (activity_id, lat, lon, altitude, date_time);"
 
-                    activity_id = user_id + str(activity_id)
-
-                    data = f.readlines()
-                    data = data[2:]
-
-                    for trackpoint in data: 
-                        split_trackpoint = trackpoint.strip().split(',')
-                        query="INSERT INTO %s (activity_id, lat, lon, altitude, date_time) VALUES ('%s', %f, %f, %d, '%s')"
-                        self.cursor.execute(query % ("Trackpoint", activity_id, float(split_trackpoint[0]), float(split_trackpoint[1]), int(split_trackpoint[2]), (split_trackpoint[3] + " " + split_trackpoint[4])))
+                self.cursor.execute(query % (pathname,"Trackpoint"))
 
             self.db_connection.commit()
 
@@ -192,7 +178,7 @@ def main():
         #program.create_trackpoint_table()
 
         #program.insert_activities()
-        program.insert_trackpoints()
+        #program.insert_trackpoints()
 
 
         #program.show_tables()
