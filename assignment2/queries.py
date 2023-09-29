@@ -69,7 +69,8 @@ class Queries:
 
         sorted_counts = sorted(activity_counts, key=lambda item: item[1], reverse=True)
         print(sorted_counts[0: 10])
-            
+
+     
 
         
 

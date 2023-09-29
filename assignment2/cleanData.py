@@ -1,66 +1,75 @@
 import os
 import datetime
 
+class CleanData():
+    def parse_plt_file(self, filename : str) -> list(list):
+        data = [] #[lat, lon, altitude, date, time]
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+            lines = lines[6:] #Skipping first six lines
 
-def parse_plt_file(filename):
-    data = [] #[lat, lon, altitude, date, time]
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-        lines = lines[6:] #Skipping first six lines
+            if len(lines) > 2500:
+                return []
 
-        if len(lines) > 2500:
-            return []
+            for line in lines:
+                split_data = line.strip().split(',')
+                lat = split_data[0]
+                lon = split_data[1]
+                altitude = split_data[3]
+                date = split_data[5]
+                time = split_data[6]
 
-        for line in lines:
-            split_data = line.strip().split(',')
-            lat = split_data[0]
-            lon = split_data[1]
-            altitude = split_data[3]
-            date = split_data[5]
-            time = split_data[6]
+                data.append([lat, lon, altitude, date, time])
+        
+        return data
+        
+    def parse_labeled_file(self, filename : str) -> list(list):
+        labels = [] #[start_date, start_time, end_date, end_time, label]
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+            lines = lines[1:]
 
-            data.append([lat, lon, altitude, date, time])
+            for line in lines:
+                split_data = line.strip().split('\t')
+                start_datetime = split_data[0]
+                start_date = start_datetime.split(' ')[0]
+                start_time = start_datetime.split(' ')[1]
+                end_datetime = split_data[1]
+                end_date = end_datetime.split(' ')[0]
+                end_time = end_datetime.split(' ')[1]
+                label = split_data[2]
+
+                labels.append([start_date, start_time, end_date, end_time, label])
+
+        return labels
     
-    return data
-    
-def parse_labeled_file(filename):
-    labels = [] #[start_date, start_time, end_date, end_time, label]
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-        lines = lines[1:]
+    def create_labeled_dict(self):
+        # Create use dict 
+        users = {}
 
-        for line in lines:
-            split_data = line.strip().split('\t')
-            start_datetime = split_data[0]
-            start_date = start_datetime.split(' ')[0]
-            start_time = start_datetime.split(' ')[1]
-            end_datetime = split_data[1]
-            end_date = end_datetime.split(' ')[0]
-            end_time = end_datetime.split(' ')[1]
-            label = split_data[2]
+        for i in range(0, 182):
+            name_str = str(i)
+            if i < 10:
+                name_str = "00" + name_str
+            elif i < 100:
+                name_str = "0" + name_str
 
-            labels.append([start_date, start_time, end_date, end_time, label])
+            users.update({name_str: False})
 
-    return labels
+        with open("dataset/labeled_ids.txt", "r") as f:
+            read_users = f.readlines()
 
-# Create use dict 
-users = {}
+            for user in read_users:
+                users.update({user.strip(): True})
 
-for i in range(0, 182):
-    name_str = str(i)
-    if i < 10:
-        name_str = "00" + name_str
-    elif i < 100:
-        name_str = "0" + name_str
+        self.labeled_users = users
 
-    users.update({name_str: False})
-
-
-with open("dataset/labeled_ids.txt", "r") as f:
-    read_users = f.readlines()
-
-    for user in read_users:
-        users.update({user.strip(): True})
+    def write_to_file(self, filename, parsed_plt_file, start_datetime, end_datetime, user_id, label="undefined"):
+         with open(filename, "w") as f:
+                f.write(user_id + "," + start_date + "," + end_datetime + "," + label + "\n")
+                f.write("activity_fk, lat,lon,altitude,date_time\n")
+                for line in parsed_plt_file:
+                    f.write(activity_fk + "," + line[0] + "," + line[1] + "," + line[2] + "," + line[3] + " " + line[4] + "\n")
 
 for i in range(0, 182):
     name_str = str(i)
