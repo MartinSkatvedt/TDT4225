@@ -1,4 +1,5 @@
 from collections import defaultdict
+import datetime
 from DbConnector import DbConnector
 from tabulate import tabulate
 
@@ -70,14 +71,54 @@ class Queries:
         sorted_counts = sorted(activity_counts, key=lambda item: item[1], reverse=True)
         print(sorted_counts[0: 10])
             
-
+    def multipleActivities(self):
+        table_name = "Activity"
+        query = "SELECT user_id, start_date_time, end_date_time FROM %s"
+        self.cursor.execute(query % table_name)
+        rows = self.cursor.fetchall()
+        for row in rows:
+            user_id = row[0]
+            start_date_time = row[1]
+            end_date_time = row[2]
+            query = "SELECT COUNT(*) FROM Activity WHERE user_id = '%s' AND start_date_time = '%s' AND end_date_time = '%s'"
+            self.cursor.execute(query % (user_id, start_date_time, end_date_time))
+            count = self.cursor.fetchall()
+            if count[0][0] > 1:
+                print("User: " + user_id + " has multiple activities with the same start and end date time")
         
+    def nUsersThatHasStartedAnActivityAndEndedItTheNextDay(self):
+        #This answers both a) and b)
+        table_name = "Activity"
+        query = "SELECT * FROM %s"
+        self.cursor.execute(query % table_name)
+        rows = self.cursor.fetchall()
+        multipleDayActivities = []
+        userList = []
+        for row in rows:
+            start_date_time = row[3]
+            end_date_time = row[4]
+            start_date_time_delta = start_date_time + datetime.timedelta(days=1)
+            if start_date_time_delta.day == end_date_time.day:
+                multipleDayActivities.append((row[1], row[2], end_date_time - start_date_time))
+                userList.append(row[1])
+
+        for activity in multipleDayActivities: 
+            print("User ID: " , activity[0] , " Transportation mode: " , activity[1] , " Duration: " , activity[2])
+
+    def overlappingActivities(self):
+        table_name = "Activity"
+        query = "SELECT id, start_date_time, end_date_time FROM %s"
+        self.cursor.execute(query % table_name)
+        rows = self.cursor.fetchall()
+        for row in rows:
+            print(row[1])
+
 
 def main():
     program = None
     try:
        program = Queries()
-       program.top10UsersWithUniqueActivities()
+       program.overlappingActivities()
     
     except Exception as e:
         print("ERROR: Failed to use database:", e)
