@@ -13,7 +13,7 @@ class Queries:
 
     def task_1(self):
         """
-        How many users, activities and trackpoints are there in the 
+        How many users, activities and points are there in the 
         dataset (after it is inserted into the database).  
         """
 
@@ -328,10 +328,49 @@ class Queries:
         print(tabulate(sorted_dict[0:15], headers=["User ID", "Altitude gained"]))
 
  
+    def task_10(self):
+        """
+        Find users that have traveled the longest total distance in one
+        day for each transportation mode
+        """
+        #Fetch all transportation modes
+        query="SELECT DISTINCT transportation_mode FROM Activity WHERE transportation_mode IS NOT NULL"
+        self.cursor.execute(query)
+        transportation_modes = self.cursor.fetchall()
+        distances = {}
+        for transportation_mode in transportation_modes:
+            query = "SELECT * FROM Activity WHERE transportation_mode='%s'"
+            self.cursor.execute(query % transportation_mode[0])
+            activities = self.cursor.fetchall()
+            for activity in activities:
+                #Get all trackpoints per activity 
+                query = "SELECT lat, lon, date_time FROM Trackpoint where activity_id='%s'"
+                self.cursor.execute(query % activity[0])
+                trackpoints = self.cursor.fetchall()
+                distance = 0
+                for trackpoint in trackpoints:
+                    # Calculate distance between current point and next point
+                    distance += self.distance_between_two_points(trackpoints[trackpoints.index(trackpoint)-1][0], trackpoints[trackpoints.index(trackpoint)-1][1], trackpoint[0], trackpoint[1])
+
+                    date = trackpoint[2].date()
+                    #Check if distance is longer than previous distance for that day
+                    if distances.get(transportation_mode[0]) == None:
+                        distances.update({transportation_mode[0]: [date, distance, activity[1]]})
+                    #Check if distance is longer than previous distance
+                    elif distances.get(transportation_mode[0])[1] < distance:
+                        distances.update({transportation_mode[0]: [date, distance, activity[1]]})
+                    #Check if they happen at the same day, if so add the distance
+                    elif distances.get(transportation_mode[0])[1] < distance and distances.get(transportation_mode[0])[0] == date:
+                        distance = distances.get(transportation_mode[0])[1] + distance 
+                        distances.update({transportation_mode[0]: [date, distance, activity[1]]})
+        print(tabulate([[k,] + v for k,v in distances.items()], headers=["Transportation Mode", "Date", "Distance", "User ID"]))
+        
+
     def task_11(self):
         """
         Find all users who have invalid activities, 
         and the number of invalid activities per user.
+        An invalid activity is defined as an activity with consecutive trackpoints where the timestamp deviate with at least 5 minutes.
         """
         
         query = """
@@ -378,7 +417,7 @@ def main():
     program = None
     try:
        program = Queries()
-       program.task_5()
+       program.task_10()
     
     except Exception as e:
         print("ERROR: Failed to use database:", e)
