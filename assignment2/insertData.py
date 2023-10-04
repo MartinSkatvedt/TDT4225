@@ -1,30 +1,8 @@
-from DbConnector import DbConnector
-from tabulate import tabulate
 import os
+from DbConnector import DbConnector
 
-"""
-  def insert_data(self, table_name):
-        names = ['Bobby', 'Mc', 'McSmack', 'Board']
-        for name in names:
-            # Take note that the name is wrapped in '' --> '%s' because it is a string,
-            # while an int would be %s etc
-            query = "INSERT INTO %s (name) VALUES ('%s')"
-            self.cursor.execute(query % (table_name, name))
-        self.db_connection.commit()
 
-    def fetch_data(self, table_name):
-        query = "SELECT * FROM %s"
-        self.cursor.execute(query % table_name)
-        rows = self.cursor.fetchall()
-        print("Data from table %s, raw format:" % table_name)
-        print(rows)
-        # Using tabulate to show the table in a nice way
-        print("Data from table %s, tabulated:" % table_name)
-        print(tabulate(rows, headers=self.cursor.column_names))
-        return rows
-"""
-
-class Assignment2Program:
+class InsertData:
 
     def __init__(self):
         self.connection = DbConnector()
@@ -96,16 +74,6 @@ class Assignment2Program:
         
         self.db_connection.commit()
 
-    def drop_table(self, table_name):
-        print("Dropping table %s..." % table_name)
-        query = "DROP TABLE %s"
-        self.cursor.execute(query % table_name)
-
-    def show_tables(self):
-        self.cursor.execute("SHOW TABLES")
-        rows = self.cursor.fetchall()
-        print(tabulate(rows, headers=self.cursor.column_names))
-
     def insert_activities(self):
         for i in range(0, 182):
             user_id = str(i)
@@ -165,23 +133,17 @@ class Assignment2Program:
 def main():
     program = None
     try:
-        program = Assignment2Program()
-        #program.create_user_table()
-        #program.create_activity_table()
-        #program.create_trackpoint_table()
+        program = InsertData()
 
-        #program.insert_users()
+        # Create tables
+        program.create_user_table()
+        program.create_activity_table()
+        program.create_trackpoint_table()
 
-        #program.drop_table("Trackpoint")
-        #program.drop_table("Activity")
-        #program.create_activity_table()
-        #program.create_trackpoint_table()
-
-        #program.insert_activities()
-        #program.insert_trackpoints()
-
-
-        #program.show_tables()
+        # Insert data
+        program.insert_users()
+        program.insert_activities()
+        program.insert_trackpoints()
         
     
     except Exception as e:
