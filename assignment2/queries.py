@@ -129,7 +129,6 @@ class Queries:
 
         return overlapping_activities
     
-    
     def distance_between_two_points(self, lat1, lon1, lat2, lon2):
         lat1_rad = math.radians(lat1)
         lat2_rad = math.radians(lat2)
@@ -235,11 +234,46 @@ class Queries:
         sorted_dict = sorted(altitudes_dict.items(), key=lambda item: item[1], reverse=True)
         print(tabulate(sorted_dict[0:15], headers=["User ID", "Altitude gained"]))
 
+    """
+    Find all users who have registered transportation_mode 
+    and their most used transportation_mode.
+    """
+    def task_12(self):
+        query = """
+        WITH TM_COUNTS AS (
+            SELECT 
+                user_id, 
+                transportation_mode, 
+                COUNT(*) as tm_count
+            FROM Activity 
+            WHERE transportation_mode IS NOT NULL
+            GROUP BY user_id, transportation_mode
+        ),
+        Ranked_TM AS (
+            SELECT 
+                user_id, 
+                transportation_mode, 
+                tm_count,
+                DENSE_RANK() OVER (PARTITION BY user_id ORDER BY tm_count DESC) AS tm_rank
+            FROM TM_COUNTS
+        )
+        SELECT 
+            user_id, 
+            transportation_mode
+        FROM Ranked_TM
+        WHERE tm_rank = 1
+        """
+
+        self.cursor.execute(query)
+        users_with_most_used_tm = self.cursor.fetchall()
+
+        print(tabulate(users_with_most_used_tm[0:15], headers=["User ID", "Transportation mode"]))
+    
 def main():
     program = None
     try:
        program = Queries()
-       program.gainedAltitude()
+       program.task_12()
     
     except Exception as e:
         print("ERROR: Failed to use database:", e)
