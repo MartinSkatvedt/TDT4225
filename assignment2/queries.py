@@ -198,6 +198,7 @@ class Queries:
 
         for activity in multipleDayActivities: 
             print("User ID: " , activity[0] , " Transportation mode: " , activity[1] , " Duration: " , activity[2])
+        print("Number of users with multiple day activities: " , len(set(userList)))
 
     def overlappingActivities(self):
         table_name = "Activity"
@@ -334,7 +335,7 @@ class Queries:
         day for each transportation mode
         """
         #Fetch all transportation modes
-        query="SELECT DISTINCT transportation_mode FROM Activity WHERE transportation_mode IS NOT NULL"
+        query="SELECT DISTINCT transportation_mode FROM Activity WHERE transportation_mode IS NOT NULL AND DATEDIFF(Activity.end_date_time, Activity.start_date_time) <= 1"
         self.cursor.execute(query)
         transportation_modes = self.cursor.fetchall()
         distances = {}
@@ -344,7 +345,7 @@ class Queries:
             activities = self.cursor.fetchall()
             for activity in activities:
                 #Get all trackpoints per activity 
-                query = "SELECT lat, lon, date_time FROM Trackpoint where activity_id='%s'"
+                query = "SELECT lat, lon, date_time FROM Trackpoint where activity_id='%s' ORDER BY date_time ASC"
                 self.cursor.execute(query % activity[0])
                 trackpoints = self.cursor.fetchall()
                 distance = 0
@@ -353,15 +354,11 @@ class Queries:
                     distance += self.distance_between_two_points(trackpoints[trackpoints.index(trackpoint)-1][0], trackpoints[trackpoints.index(trackpoint)-1][1], trackpoint[0], trackpoint[1])
 
                     date = trackpoint[2].date()
-                    #Check if distance is longer than previous distance for that day
+                    #Check if distances is empty and add distance
                     if distances.get(transportation_mode[0]) == None:
                         distances.update({transportation_mode[0]: [date, distance, activity[1]]})
                     #Check if distance is longer than previous distance
                     elif distances.get(transportation_mode[0])[1] < distance:
-                        distances.update({transportation_mode[0]: [date, distance, activity[1]]})
-                    #Check if they happen at the same day, if so add the distance
-                    elif distances.get(transportation_mode[0])[1] < distance and distances.get(transportation_mode[0])[0] == date:
-                        distance = distances.get(transportation_mode[0])[1] + distance 
                         distances.update({transportation_mode[0]: [date, distance, activity[1]]})
         print(tabulate([[k,] + v for k,v in distances.items()], headers=["Transportation Mode", "Date", "Distance", "User ID"]))
         
@@ -372,10 +369,25 @@ class Queries:
         and the number of invalid activities per user.
         An invalid activity is defined as an activity with consecutive trackpoints where the timestamp deviate with at least 5 minutes.
         """
-        
-        query = """
+        query = """SELECT trackpoint1.activity_id
+                           FROM Trackpoint AS trackpoint1
+                           JOIN Trackpoint AS trackpoint2 ON trackpoint1.id + 1 = trackpoint2.id
+                           WHERE trackpoint1.activity_id = trackpoint2.activity_id AND TIMESTAMPDIFF(MINUTE, trackpoint1.date_time, trackpoint2.date_time) >= 5
+                           GROUP BY trackpoint1.activity_id"""
+        # Fetch all activities with invalid trackpoints
+        self.cursor.execute(query)
+        invalid_activities = self.cursor.fetchall()
+        print(invalid_activities)
+        users = {} # user_id : number of invalid activities
+        for activities in invalid_activities:
+            # The first three characters of the activity_id is the user_id
+            user_id = activities[0][0:3]
+            if users.get(user_id) == None:
+                users.update({user_id: 1})
+            else:
+                users.update({user_id: users.get(user_id) + 1})
 
-        """
+        print(tabulate(users.items(), headers=["User ID", "Number of invalid activities"]))
 
     def task_12(self):
         """
@@ -417,7 +429,7 @@ def main():
     program = None
     try:
        program = Queries()
-       program.task_10()
+       program.task_7()
     
     except Exception as e:
         print("ERROR: Failed to use database:", e)
