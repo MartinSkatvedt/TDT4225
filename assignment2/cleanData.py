@@ -2,7 +2,9 @@ import os
 import datetime
 
 class CleanData():
-    def parse_plt_file(self, filename : str) -> list(list):
+
+    # Parses a trajectory file and returns a list of lists
+    def parse_plt_file(self, filename : str):
         data = [] #[lat, lon, altitude, date, time]
         with open(filename, 'r') as f:
             lines = f.readlines()
@@ -23,7 +25,7 @@ class CleanData():
         
         return data
         
-    def parse_labeled_file(self, filename : str) -> list(list):
+    def parse_labeled_file(self, filename : str):
         labels = [] #[start_date, start_time, end_date, end_time, label]
         with open(filename, 'r') as f:
             lines = f.readlines()
@@ -64,103 +66,90 @@ class CleanData():
 
         self.labeled_users = users
 
-    def write_to_file(self, filename, parsed_plt_file, start_datetime, end_datetime, user_id, label="undefined"):
-         with open(filename, "w") as f:
-                f.write(user_id + "," + start_date + "," + end_datetime + "," + label + "\n")
-                f.write("activity_fk, lat,lon,altitude,date_time\n")
-                for line in parsed_plt_file:
-                    f.write(activity_fk + "," + line[0] + "," + line[1] + "," + line[2] + "," + line[3] + " " + line[4] + "\n")
+    def number_to_string(self, number):
+        if number < 10: 
+            number = "00" + str(number)
+                
+        elif number < 100:
+            number = "0" + str(number)
 
-for i in range(0, 182):
-    name_str = str(i)
-    if i < 10:
-        name_str = "00" + name_str
-    elif i < 100:
-        name_str = "0" + name_str
+        return str(number)
+
+    def generate_user_ids(self):
+        user_ids = []
+        for i in range(0, 182):
+            user_ids.append(self.number_to_string(i))
+
+        return user_ids
+    
+    def clean(self):
+        self.create_labeled_dict()
+        for user_id in self.generate_user_ids():
+            print(f'Cleaning data for user {user_id}...')
+
+            # Get trajectory files for user
+            dirname="./dataset/Data/" + user_id + "/Trajectory/"
+            trajectory_files=os.listdir(dirname)
+
+            # Create a new directory for cleaned data
+            cleaned_dirname="./dataset/CleanedData/" + user_id
+            os.makedirs(cleaned_dirname, exist_ok=True)
+
+            for index, filename in enumerate(trajectory_files):
+                activity_id = self.number_to_string(index)
+                activity_fk = user_id + activity_id
 
 
-    print(f'Cleaning data for user {name_str}...')
+                if filename.endswith(".plt"):
+                    parsed = self.parse_plt_file(dirname + filename)
+                    if parsed == []:
+                        continue
+                    start_date = parsed[0][3]
+                    start_time = parsed[0][4]
+                    end_date = parsed[-1][3]
+                    end_time = parsed[-1][4]
 
-    dirname="./dataset/Data/" + name_str + "/Trajectory/"
-    cleaned_dirname="./dataset/CleanedData/" + name_str
-    os.makedirs(cleaned_dirname, exist_ok=True)
-    trajectory_files=os.listdir(dirname)
+                    activity_start_datetime = datetime.datetime.strptime(start_date + " " + start_time, "%Y-%m-%d %H:%M:%S")
+                    activity_end_datetime = datetime.datetime.strptime(end_date + " " + end_time, "%Y-%m-%d %H:%M:%S")
 
-    if users[name_str]:
-        labeled_filename = "./dataset/Data/" + name_str + "/labels.txt"
-        parsed_labels = parse_labeled_file(labeled_filename)
 
-        for index, filename in enumerate(trajectory_files):
-            activity_id = index
-            if activity_id < 10: 
-                activity_id = "00" + str(activity_id)
+                    activity_labels = []
                     
-            elif activity_id < 100:
-                activity_id = "0" + str(activity_id)
-
-            activity_fk = name_str + str(activity_id)
-
-            if filename.endswith(".plt"):
-                parsed = parse_plt_file(dirname + filename)
-                if parsed == []:
-                    continue
-                start_date = parsed[0][3]
-                start_time = parsed[0][4]
-                end_date = parsed[-1][3]
-                end_time = parsed[-1][4]
-
-                activity_start_datetime = datetime.datetime.strptime(start_date + " " + start_time, "%Y-%m-%d %H:%M:%S")
-                activity_end_datetime = datetime.datetime.strptime(end_date + " " + end_time, "%Y-%m-%d %H:%M:%S")
+                    # If the user has labels, extract the labels for the current activity
+                    if self.labeled_users[user_id]:
+                        labeled_filename = "./dataset/Data/" + user_id + "/labels.txt"
+                        parsed_labels = self.parse_labeled_file(labeled_filename)
 
 
-                activity_labels = []
-                for parsed_label in parsed_labels:
-                    label_start_datetime = datetime.datetime.strptime(parsed_label[0] + " " + parsed_label[1], "%Y/%m/%d %H:%M:%S")
-                    label_end_datetime = datetime.datetime.strptime(parsed_label[2] + " " + parsed_label[3], "%Y/%m/%d %H:%M:%S")
+                        for parsed_label in parsed_labels:
+                            label_start_datetime = datetime.datetime.strptime(parsed_label[0] + " " + parsed_label[1], "%Y/%m/%d %H:%M:%S")
+                            label_end_datetime = datetime.datetime.strptime(parsed_label[2] + " " + parsed_label[3], "%Y/%m/%d %H:%M:%S")
 
-                    if activity_start_datetime.timestamp() == label_start_datetime.timestamp() and activity_end_datetime.timestamp() == label_end_datetime.timestamp():
-                        activity_labels.append(parsed_label[4])
-
+                            if activity_start_datetime.timestamp() == label_start_datetime.timestamp() and activity_end_datetime.timestamp() == label_end_datetime.timestamp():
+                                activity_labels.append(parsed_label[4])
 
                 
-                label_string = ""
-                if len(activity_labels) == 0:
-                    label_string = "undefined"
-                elif len(activity_labels) == 1:
-                    label_string = activity_labels[0]
-                else:
-                    label_string = "/".join(activity_labels) 
-                txt_filename = str(index) + ".txt"
+                    label_string = ""
+                    if len(activity_labels) == 0:
+                        label_string = "undefined"
+                    elif len(activity_labels) == 1:
+                        label_string = activity_labels[0]
+                    else:
+                        label_string = "/".join(activity_labels) 
+
+                    txt_filename = str(index) + ".txt"
+
                 with open(cleaned_dirname + "/" + txt_filename, "w") as f:
-                    f.write(name_str + "," + start_date + " " + start_time + "," + end_date + " " + end_time + "," + label_string + "\n")
+                    f.write(user_id + "," + start_date + " " + start_time + "," + end_date + " " + end_time + "," + label_string + "\n")
                     f.write("lat,lon,altitude,date_time\n")
                     for line in parsed:
                         f.write(activity_fk + "," + line[0] + "," + line[1] + "," + line[2] + "," + line[3] + " " + line[4] + "\n")
-    else:
-        for index, filename in enumerate(trajectory_files):
-            if filename.endswith(".plt"):
-                parsed = parse_plt_file(dirname + filename)
-                if parsed == []:
-                    continue
-                start_date = parsed[0][3]
-                start_time = parsed[0][4]
-                end_date = parsed[-1][3]
-                end_time = parsed[-1][4]
 
-                activity_id = index
-                if activity_id < 10: 
-                    activity_id = "00" + str(activity_id)
-                        
-                elif activity_id < 100:
-                    activity_id = "0" + str(activity_id)
 
-                activity_fk = name_str + str(activity_id)
+def main():
+    cleaner = CleanData()
+    cleaner.clean()
 
-                txt_filename = str(index) + ".txt"
-                with open(cleaned_dirname + "/" + txt_filename, "w") as f:
-                    f.write(name_str + "," + start_date + " " + start_time + "," + end_date + " " + end_time + ", undefined" + "\n")
-                    f.write("lat,lon,altitude,date_time\n")
-                    for line in parsed:
-                        f.write(activity_fk + "," + line[0] + "," + line[1] + "," + line[2] + "," + line[3] + " " + line[4] + "\n")
-    
 
+if __name__ == "__main__":
+    main()

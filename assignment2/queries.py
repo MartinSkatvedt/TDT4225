@@ -147,8 +147,6 @@ class Queries:
         distance = (c * r) * 1000 # Return distance in meters
         return distance
         
-
-
     def nUsersWhichHaveBeenClose(self):
         overlapping_activities = self.overlappingActivities()
 
