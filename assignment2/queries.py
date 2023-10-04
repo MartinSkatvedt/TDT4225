@@ -201,6 +201,7 @@ class Queries:
         print("Number of users with multiple day activities: " , len(set(userList)))
 
     def overlappingActivities(self):
+        """Helper function for task 8"""
         table_name = "Activity"
         query = "SELECT id, user_id, start_date_time, end_date_time FROM %s ORDER BY start_date_time ASC"
         self.cursor.execute(query % table_name)
@@ -224,6 +225,7 @@ class Queries:
         return overlapping_activities
     
     def distance_between_two_points(self, lat1, lon1, lat2, lon2):
+        """Helper fuction used to calculate the distance between to points"""
         lat1_rad = math.radians(lat1)
         lat2_rad = math.radians(lat2)
         lon1_rad = math.radians(lon1)
@@ -367,14 +369,15 @@ class Queries:
         """
         Find all users who have invalid activities, 
         and the number of invalid activities per user.
-        An invalid activity is defined as an activity with consecutive trackpoints where the timestamp deviate with at least 5 minutes.
+        An invalid activity is defined as an activity with
+        consecutive trackpoints where the timestamp deviate with at least 5 minutes.
         """
+        # Fetch all activities with invalid trackpoints
         query = """SELECT trackpoint1.activity_id
                            FROM Trackpoint AS trackpoint1
                            JOIN Trackpoint AS trackpoint2 ON trackpoint1.id + 1 = trackpoint2.id
                            WHERE trackpoint1.activity_id = trackpoint2.activity_id AND TIMESTAMPDIFF(MINUTE, trackpoint1.date_time, trackpoint2.date_time) >= 5
                            GROUP BY trackpoint1.activity_id"""
-        # Fetch all activities with invalid trackpoints
         self.cursor.execute(query)
         invalid_activities = self.cursor.fetchall()
         print(invalid_activities)
