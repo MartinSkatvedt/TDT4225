@@ -12,7 +12,7 @@ def number_to_string(number):
 
     return str(number)
 
-class ExampleProgram:
+class InsertData:
 
     def __init__(self):
         self.connection = DbConnector()
@@ -146,7 +146,7 @@ class ExampleProgram:
 def main():
     program = None
     try:
-        program = ExampleProgram()
+        program = InsertData()
         #program.drop_coll(collection_name="User")
         #program.create_coll(collection_name="User")
         #program.create_coll(collection_name="Activity")
