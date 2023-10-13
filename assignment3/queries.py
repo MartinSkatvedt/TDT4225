@@ -1,5 +1,6 @@
 from pprint import pprint 
 from DbConnector import DbConnector
+from haversine import haversine, Unit
 
 class Queries:
 
@@ -94,13 +95,96 @@ class Queries:
         """
         Find the year with the most activities.
         """
+        collection = self.db['Activity']
+        year = collection.aggregate([
+            {
+                '$group': {
+                    '_id': {'$year': '$start_date_time'},
+                    'count': {'$sum': 1}
+                }
+            },
+            {
+                '$sort': {'count': -1}
+            },
+            {
+                '$limit': 1
+            }
+        ])
+
+        print("Year with the most activities:")
+        for doc in year:
+            print(doc['_id'], doc['count'])
+
+    def task_6_b(self):
+        """
+        Is this also the year with the most recorded hours?
+        """
+        collection = self.db['Activity']
+        year = collection.aggregate([
+            {
+                '$group': {
+                    '_id': {'$year': '$start_date_time'},
+                    'count': {'$sum': {'$subtract': ['$end_date_time', '$start_date_time']}}
+                }
+            },
+            {
+                '$sort': {'count': -1}
+            },
+            {
+                '$limit': 1
+            }
+        ])
+
+        print("Year : number of hours")
+        for doc in year:
+            print(doc["_id"], round(doc["count"] / 1000 / 60 / 60, 2))
         
+    def task_7(self):
+        """
+        Find the total distance (in km) walked in 2008, by user with id=112.
+        """    
+
+        collection = self.db['Activity']
+        activities = collection.find({'_id': {'$regex': '^112.*'}, 'transportation_mode': 'walk', "$expr": {"$eq": [{ "$year": "$start_date_time" }, 2008]}})
+        total_distance = 0
+        collection = self.db['Trackpoint']
+        for activity in activities:
+            print(activity['_id'], activity['transportation_mode'], activity['start_date_time'])
+            trackpoints = collection.find({'activity_id': activity['_id']})
+
+            for index, trackpoint in enumerate(trackpoints):
+                if index == 0:
+                    prev_trackpoint = trackpoint
+                    continue
+                d = haversine((prev_trackpoint["lat"], prev_trackpoint["lon"]),  (trackpoint["lat"], trackpoint["lon"]))
+                total_distance += d
+                prev_trackpoint = trackpoint
+
+        print("Total distance walked in 2008 by user 112:", round(total_distance, 2), "km")
+            
+    
+    def task_10(self):
+        """
+        Find the users who have tracked an activity in the Forbidden City of Beijing. 
+        """
+
+        collection = self.db['Trackpoint']
+        trackpoints = collection.find({'lat': {'$gte': 39.916, '$lt': 39.917}, 'lon': {'$gte': 116.397, '$lt': 116.398}})
+        
+        users = set()
+        for trackpoint in trackpoints:
+            users.add(trackpoint['activity_id'][:3])
+
+        print("Users who have tracked an activity in the Forbidden City of Beijing:")
+        print(sorted(users))
+
+
 
 def main():
     program = None
     try:
         program = Queries()
-        program.task_6_a()
+        program.task_10()
   
     except Exception as e:
         print("ERROR: Failed to use database:", e)
