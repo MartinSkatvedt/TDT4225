@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pprint import pprint 
 from DbConnector import DbConnector
 from haversine import haversine, Unit
@@ -161,15 +162,78 @@ class Queries:
                 prev_trackpoint = trackpoint
 
         print("Total distance walked in 2008 by user 112:", round(total_distance, 2), "km")
+
+    def task_8(self):
+        """
+        Find the top 20 users who have gained the most altitude meters
+        """
+        collection = self.db['Trackpoint']
+        res = collection.aggregate([
+            {
+                "$group": {
+                    "_id": "$activity_id",
+                    "trackpoints": {"$push": "$altitude"},
+                }
+            }
+        ])
+        users = dict()
+        
+        for activity in res:
+            for index, trackpoint in enumerate(activity["trackpoints"]):
+                if index == 0:
+                    prev_trackpoint = trackpoint
+                    continue
+                if trackpoint == -666: 
+                    continue
+                if (trackpoint - prev_trackpoint) > 0:
+                    prev_count = users.get(activity["_id"][:3], 0)
+                    users[activity["_id"][:3]] = prev_count + (trackpoint - prev_trackpoint)
+                prev_trackpoint = trackpoint
+                
+        #Print in a pretty way
+        #Sort 20 first based on number of altitude meters
+        users = sorted(users.items(), key=lambda x: x[1], reverse=True)[:20]
+        for user in users:
+            print(user)
             
-    
+    def task_9(self):   
+        """
+        Find all users who have invalid activities, and the number of invalid activities per user
+        """
+        collection = self.db['Trackpoint']
+        res = collection.aggregate([
+            {
+                "$group": {
+                    "_id": "$activity_id",
+                    "trackpoints": {"$push": "$date_time"},
+                }
+            }
+        ])
+        users = dict() # user_id : number of invalid activities
+        
+        for activity in res:
+            for index, trackpoint in enumerate(activity["trackpoints"]):
+                if index == 0:
+                    prev_trackpoint = trackpoint
+                    continue
+                if (trackpoint - prev_trackpoint) > timedelta(minutes=5): # 5 minutes in milliseconds
+                    prev_count = users.get(activity["_id"][:3], 0)
+                    users[activity["_id"][:3]] = prev_count + 1
+                    break
+                prev_trackpoint = trackpoint
+                
+        #Print in a pretty way
+        for user in users:
+            print(user, users[user])
+
+
     def task_10(self):
         """
         Find the users who have tracked an activity in the Forbidden City of Beijing. 
         """
-
+        # Radius perhaps?
         collection = self.db['Trackpoint']
-        trackpoints = collection.find({'lat': {'$gte': 39.916, '$lt': 39.917}, 'lon': {'$gte': 116.397, '$lt': 116.398}})
+        trackpoints = collection.find({'lat': {'$gte': 39.922, '$lt': 39.9226}, 'lon': {'$gte': 116.392, '$lt': 116.401}})
         
         users = set()
         for trackpoint in trackpoints:
@@ -178,13 +242,61 @@ class Queries:
         print("Users who have tracked an activity in the Forbidden City of Beijing:")
         print(sorted(users))
 
+    def task_11(self):
+        """
+        Find all users who have registered transportation_mode and their most used transportation_mode.
+        """
+        collection = self.db['Activity']
+        res = collection.aggregate([
+            {
+                "$match": {
+                    "transportation_mode": {"$ne": None}
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "User",
+                    "localField": "_id",
+                    "foreignField": "activities",
+                    "as": "user"
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "user_id" : {"$arrayElemAt": ["$user._id", 0]},
+                        "transportation_mode": "$transportation_mode"
+                    },
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+               "$sort": {"count": -1}
+            },
+            {
+                "$group": {
+                    "_id": "$_id.user_id",
+                    "transportation_mode": {"$first": "$_id.transportation_mode"},
+                    "count": {"$first": "$count"}
+                }
+            },
+            {
+                "$sort": {"_id": 1}
+            }
+        ])
+
+        # Print prettier 
+        for doc in res: 
+            print(doc['_id'], doc['transportation_mode'])
+
+
 
 
 def main():
     program = None
     try:
         program = Queries()
-        program.task_10()
+        program.task_8()
   
     except Exception as e:
         print("ERROR: Failed to use database:", e)
